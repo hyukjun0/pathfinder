@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>길찾기 알고리즘 비교 · 패스파인더</title>
+<style>
+:root{--bg:#fff;--ink:#111827;--muted:#6b7280;--line:#e5e7eb;--hair:#f3f4f6;--acc:#2563eb;--acc2:#1d4ed8;--wall:#374151;--gridbg:#fafafa;--gridline:#eef0f3;color-scheme:light dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1117;--ink:#f3f4f6;--muted:#9ca3af;--line:#2a2f3a;--hair:#1c2029;--acc:#60a5fa;--acc2:#93c5fd;--wall:#4b5563;--gridbg:#151922;--gridline:#1f2430}}
+:root[data-theme="dark"]{--bg:#0f1117;--ink:#f3f4f6;--muted:#9ca3af;--line:#2a2f3a;--hair:#1c2029;--acc:#60a5fa;--acc2:#93c5fd;--wall:#4b5563;--gridbg:#151922;--gridline:#1f2430}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Pretendard,-apple-system,'Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',sans-serif;-webkit-text-size-adjust:100%}
+header{padding:20px 24px;border-bottom:1px solid var(--line);display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+h1{margin:0;font-size:20px}
+header p{margin:0;color:var(--muted);font-size:13px}
+main{display:grid;grid-template-columns:minmax(0,560px) minmax(0,1fr);gap:32px;padding:24px;max-width:1240px;margin:0 auto}
+@media (max-width:900px){main{grid-template-columns:1fr;gap:20px;padding:16px}}
+#cv{width:100%;aspect-ratio:1;display:block;border:1px solid var(--line);touch-action:none;cursor:pointer}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:12px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;margin-right:6px;vertical-align:-1px}
+.lbl{font-size:12px;color:var(--muted);margin-bottom:6px}
+.tabs{display:flex;gap:22px;border-bottom:1px solid var(--line);margin-bottom:20px;overflow-x:auto}
+.tab{background:none;border:0;border-bottom:2px solid transparent;padding:6px 0 10px;font:inherit;font-size:16px;color:var(--muted);cursor:pointer;margin-bottom:-1px}
+.tab[aria-pressed="true"]{color:var(--acc);border-color:var(--acc);font-weight:600}
+.tab:disabled{cursor:default;opacity:.6}
+.trow{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;padding-bottom:18px;border-bottom:1px solid var(--line)}
+.big{font-size:56px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums}
+.big span{font-size:20px;font-weight:400;color:var(--muted);margin-left:6px}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(110px,1fr));gap:10px 28px;margin:0}
+.stats dt{font-size:11px;color:var(--muted)}
+.stats dd{margin:2px 0 0;font-size:16px;font-weight:600;font-variant-numeric:tabular-nums}
+.btns{display:flex;gap:8px;flex-wrap:wrap;padding:18px 0;border-bottom:1px solid var(--line)}
+button.b{font:inherit;font-size:14px;height:40px;padding:0 16px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+button.b:hover{background:var(--hair)}
+button.p{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600;min-width:90px}
+button.p:hover{background:var(--acc2)}
+.rh{display:flex;justify-content:space-between;align-items:center;margin:18px 0 8px}
+h2{margin:0;font-size:15px}
+button.s{height:30px;font-size:12px;padding:0 12px;border-radius:6px}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums;min-width:420px}
+th{font-size:11px;font-weight:400;color:var(--muted);text-align:right;padding:6px 6px;border-bottom:1px solid var(--line)}
+td{text-align:right;padding:9px 6px;border-bottom:1px solid var(--hair)}
+th:nth-child(-n+2),td:nth-child(-n+2){text-align:left}
+tr.top td{color:var(--acc);font-weight:600}
+tr.fail td{color:var(--muted)}
+.msg{font-size:13px;color:var(--muted);margin:14px 0 0;min-height:20px}
+</style>
+</head>
+<body>
+<header><h1>길찾기 알고리즘 비교</h1><p>같은 맵, 같은 장애물에서 알고리즘별 성능 측정</p></header>
+<main>
+ <section>
+  <canvas id="cv" aria-label="길찾기 격자 맵"></canvas>
+  <div class="legend">
+   <span><i style="background:var(--acc);border-radius:50%"></i>기물</span>
+   <span><i style="border:2px solid var(--ink);border-radius:50%"></i>출발</span>
+   <span><i style="background:var(--ink);border-radius:2px"></i>도착</span>
+   <span><i style="background:var(--wall)"></i>장애물</span>
+   <span><i style="background:var(--acc);opacity:.4;border-radius:2px"></i>예상 경로</span>
+   <span><i style="background:var(--acc);opacity:.12"></i>탐색 영역</span>
+  </div>
+ </section>
+ <section>
+  <div class="lbl">알고리즘</div>
+  <div class="tabs" id="tabs"></div>
+  <div class="trow">
+   <div><div class="lbl">경과 시간</div><div class="big"><b id="tm" style="font-weight:600">00.00</b><span>초</span></div></div>
+   <dl class="stats">
+    <div><dt>연산 시간</dt><dd id="s-ms">0.00 ms</dd></div>
+    <div><dt>탐색 노드</dt><dd id="s-nodes">0</dd></div>
+    <div><dt>이동 칸수</dt><dd id="s-steps">0</dd></div>
+    <div><dt>재탐색</dt><dd id="s-re">0회</dd></div>
+   </dl>
+  </div>
+  <div class="btns">
+   <button class="b p" id="b-start">시작</button>
+   <button class="b" id="b-reset">기물 리셋</button>
+   <button class="b" id="b-rand">랜덤 맵</button>
+   <button class="b" id="b-clear">맵 비우기</button>
+   <button class="b" id="b-throw">경로 방해</button>
+  </div>
+  <div class="rh"><h2>순위</h2><button class="b s" id="b-sort"></button></div>
+  <div class="tw"><table>
+   <thead><tr><th>순위</th><th>알고리즘</th><th>탐색 노드</th><th>연산 시간</th><th>이동</th><th>재탐색</th></tr></thead>
+   <tbody id="rank"></tbody>
+  </table></div>
+  <p class="msg" id="msg"></p>
+ </section>
+</main>
+<script>
+const R=20,C=20,N=R*C,STEP=70,DENS=.22;
+const idx=(r,c)=>r*C+c, START=idx(10,0), GOAL=idx(10,19);
+const SORTS=[["탐색 노드","nodes"],["연산 시간","ms"],["이동 칸수","steps"]];
+const $=id=>document.getElementById(id);
+const cv=$("cv"),ctx=cv.getContext("2d");
+
+/* ---------- 알고리즘: (시작, 목표) -> {path|null, visited} ---------- */
+const obs=new Set();
+function nb(i){const r=(i/C)|0,c=i%C,o=[];
+ if(r>0&&!obs.has(i-C))o.push(i-C); if(r<R-1&&!obs.has(i+C))o.push(i+C);
+ if(c>0&&!obs.has(i-1))o.push(i-1); if(c<C-1&&!obs.has(i+1))o.push(i+1); return o}
+const man=(a,b)=>Math.abs(((a/C)|0)-((b/C)|0))+Math.abs(a%C-b%C);
+function build(par,g){const p=[];for(let c=g;c!==-1;c=par[c])p.push(c);return p.reverse()}
+function bfs(s,g){const par=new Array(N).fill(-2),q=[s],vis=[];par[s]=-1;
+ for(let h=0;h<q.length;){const u=q[h++];vis.push(u);if(u===g)return{path:build(par,g),visited:vis};
+  for(const n of nb(u))if(par[n]===-2){par[n]=u;q.push(n)}}
+ return{path:null,visited:vis}}
+function dfs(s,g){const par=new Array(N).fill(-2),st=[s],seen=new Set(),vis=[];par[s]=-1;
+ while(st.length){const u=st.pop();if(seen.has(u))continue;seen.add(u);vis.push(u);
+  if(u===g)return{path:build(par,g),visited:vis};
+  for(const n of nb(u))if(!seen.has(n)){par[n]=u;st.push(n)}}
+ return{path:null,visited:vis}}
+function best(s,g,useH){const gs=new Array(N).fill(Infinity),par=new Array(N).fill(-2),done=new Set(),vis=[];
+ let open=[[useH?man(s,g):0,0,s]],cnt=0;gs[s]=0;par[s]=-1;
+ while(open.length){let m=0;for(let i=1;i<open.length;i++)if(open[i][0]<open[m][0]||(open[i][0]===open[m][0]&&open[i][1]<open[m][1]))m=i;
+  const u=open.splice(m,1)[0][2];if(done.has(u))continue;done.add(u);vis.push(u);
+  if(u===g)return{path:build(par,g),visited:vis};
+  for(const n of nb(u)){const ng=gs[u]+1;if(ng<gs[n]){gs[n]=ng;par[n]=u;open.push([ng+(useH?man(n,g):0),++cnt,n])}}}
+ return{path:null,visited:vis}}
+const ALGOS={BFS:bfs,DFS:dfs,Dijkstra:(s,g)=>best(s,g,false),"A*":(s,g)=>best(s,g,true)};
+
+/* ---------- 게임 상태 ---------- */
+let sel="BFS",sortIdx=0,ranking=[],msg="알고리즘을 고르고 [시작]을 누르세요 · 격자를 클릭하거나 드래그하면 장애물을 놓을 수 있어요";
+let pawn,path,visited,running,finished,t0,t1,last,st;
+function resetRun(){pawn=START;path=[];visited=[];running=false;finished=false;t0=t1=last=0;st={ms:0,nodes:0,steps:0,re:0}}
+function plan(isRe){const t=performance.now(),res=ALGOS[sel](pawn,GOAL);
+ st.ms+=performance.now()-t;st.nodes+=res.visited.length;if(isRe)st.re++;visited=res.visited;
+ if(!res.path){path=[];finish(false);return false}path=res.path;return true}
+function start(){if(running)return;resetRun();running=true;t0=last=performance.now();msg=sel+" 실행 중 · 격자를 클릭해 장애물을 놓아보세요";plan(false);sync()}
+function step(){if(path.length>1){path.shift();pawn=path[0];st.steps++}if(pawn===GOAL)finish(true)}
+function finish(ok){running=false;finished=true;t1=performance.now();
+ ranking.push({name:sel,ok,...st});if(ranking.length>12)ranking.shift();
+ msg=ok?"도착! 결과가 순위에 기록되었어요":"길이 막혀서 실패로 기록되었어요";renderRank();sync()}
+function toggle(i,force){if(i===START||i===GOAL||i===pawn)return;
+ const has=obs.has(i);if(force==="add"&&has||force==="del"&&!has)return;
+ if(has){obs.delete(i);return}obs.add(i);
+ if(running&&path.includes(i)&&plan(true))msg="경로가 막혀서 "+sel+"가 다시 탐색했어요"}
+function randMap(){if(running)return;resetRun();obs.clear();
+ for(let i=0;i<N;i++)if(i!==START&&i!==GOAL&&Math.random()<DENS)obs.add(i);
+ msg="랜덤 맵 생성 · 같은 맵에서 알고리즘을 바꿔가며 비교해보세요";sync()}
+function clearMap(){if(running)return;resetRun();obs.clear();msg="맵을 비웠어요";sync()}
+function resetPawn(){resetRun();msg="기물을 처음 위치로 돌렸어요 (맵은 유지)";sync()}
+function throwObs(){if(!running||path.length<4){msg="경로 방해는 실행 중일 때만 사용할 수 있어요";sync();return}
+ const c=path.slice(2,-1);toggle(c[(Math.random()*c.length)|0]);sync()}
+
+/* ---------- 화면 ---------- */
+function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
+function draw(){const w=cv.clientWidth,dpr=window.devicePixelRatio||1;
+ if(cv.width!==Math.round(w*dpr)){cv.width=cv.height=Math.round(w*dpr)}
+ ctx.setTransform(dpr,0,0,dpr,0,0);const cs=w/C,acc=css("--acc"),ink=css("--ink");
+ ctx.fillStyle=css("--gridbg");ctx.fillRect(0,0,w,w);
+ ctx.fillStyle=acc;ctx.globalAlpha=.1;for(const i of visited)ctx.fillRect((i%C)*cs,((i/C)|0)*cs,cs,cs);
+ ctx.globalAlpha=.4;const pad=cs*.32;
+ for(const i of path){ctx.beginPath();const x=(i%C)*cs+pad,y=((i/C)|0)*cs+pad,s=cs-2*pad;
+  ctx.roundRect?ctx.roundRect(x,y,s,s,cs*.15):ctx.rect(x,y,s,s);ctx.fill()}
+ ctx.globalAlpha=1;ctx.strokeStyle=css("--gridline");ctx.lineWidth=1;ctx.beginPath();
+ for(let i=1;i<C;i++){ctx.moveTo(i*cs,0);ctx.lineTo(i*cs,w);ctx.moveTo(0,i*cs);ctx.lineTo(w,i*cs)}ctx.stroke();
+ ctx.fillStyle=css("--wall");for(const i of obs)ctx.fillRect((i%C)*cs+1,((i/C)|0)*cs+1,cs-2,cs-2);
+ const ctr=i=>[(i%C)*cs+cs/2,((i/C)|0)*cs+cs/2],r=cs*.32;
+ let [x,y]=ctr(START);ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fillStyle=css("--bg");ctx.fill();ctx.lineWidth=2;ctx.strokeStyle=ink;ctx.stroke();
+ [x,y]=ctr(GOAL);ctx.fillStyle=ink;ctx.fillRect(x-r,y-r,2*r,2*r);
+ [x,y]=ctr(pawn);ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fillStyle=acc;ctx.fill()}
+function elapsed(){return running?(performance.now()-t0)/1000:finished?(t1-t0)/1000:0}
+function sync(){
+ document.querySelectorAll(".tab").forEach(b=>{b.setAttribute("aria-pressed",b.dataset.a===sel);b.disabled=running});
+ $("s-ms").textContent=st.ms.toFixed(2)+" ms";$("s-nodes").textContent=st.nodes;$("s-steps").textContent=st.steps;$("s-re").textContent=st.re+"회";
+ $("b-sort").textContent="기준: "+SORTS[sortIdx][0];$("msg").textContent=msg;renderRank()}
+function renderRank(){const k=SORTS[sortIdx][1];
+ const ok=ranking.filter(r=>r.ok).sort((a,b)=>a[k]-b[k]),fl=ranking.filter(r=>!r.ok),rows=ok.concat(fl).slice(0,5);
+ $("rank").innerHTML=rows.length?rows.map((r,i)=>`<tr class="${i===0&&r.ok?"top":r.ok?"":"fail"}"><td>${r.ok?i+1:"-"}</td><td>${r.name}${r.ok?"":" (실패)"}</td><td>${r.nodes}</td><td>${r.ms.toFixed(2)} ms</td><td>${r.steps}</td><td>${r.re}</td></tr>`).join(""):
+  `<tr class="fail"><td colspan="6" style="text-align:left">아직 기록이 없어요. 알고리즘을 실행해 보세요.</td></tr>`}
+function loop(now){
+ if(running&&now-last>=STEP){last=now;step();if(!running)sync()}
+ $("tm").textContent=elapsed().toFixed(2).padStart(5,"0");draw();requestAnimationFrame(loop)}
+
+/* ---------- 입력 ---------- */
+Object.keys(ALGOS).forEach(a=>{const b=document.createElement("button");b.className="tab";b.dataset.a=a;b.textContent=a;
+ b.onclick=()=>{if(!running){sel=a;sync()}};$("tabs").appendChild(b)});
+$("b-start").onclick=start;$("b-reset").onclick=resetPawn;$("b-rand").onclick=randMap;$("b-clear").onclick=clearMap;$("b-throw").onclick=throwObs;
+$("b-sort").onclick=()=>{sortIdx=(sortIdx+1)%SORTS.length;sync()};
+let drag=null,lastCell=-1;
+function cellAt(e){const r=cv.getBoundingClientRect(),c=Math.floor((e.clientX-r.left)/r.width*C),rr=Math.floor((e.clientY-r.top)/r.height*R);
+ return c<0||c>=C||rr<0||rr>=R?-1:idx(rr,c)}
+cv.addEventListener("pointerdown",e=>{const i=cellAt(e);if(i<0)return;cv.setPointerCapture(e.pointerId);
+ drag=obs.has(i)?"del":"add";lastCell=i;toggle(i,drag);sync()});
+cv.addEventListener("pointermove",e=>{if(!drag)return;const i=cellAt(e);if(i<0||i===lastCell)return;lastCell=i;toggle(i,drag);sync()});
+["pointerup","pointercancel"].forEach(t=>cv.addEventListener(t,()=>{drag=null}));
+
+resetRun();randMap();msg="랜덤 맵이 준비됐어요 · 알고리즘을 고르고 [시작]을 누르세요";sync();requestAnimationFrame(loop);
+</script>
+</body>
+</html>
